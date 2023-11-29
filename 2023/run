@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+if [[ -z "$1" ]]
+then
+    day=$(ls days | sort | tail -1)
+else
+    day="day-$1"
+fi
+
+go run days/$day/main.go

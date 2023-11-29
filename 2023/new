@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+
+if [[ -z "$1" ]]
+then
+    echo "$0: need day number to create day template"
+    exit 1
+fi
+
+mkdir -p days/day-$1
+cat > days/day-$1/main.go << EOF
+package main
+
+import (
+    "aoc/utils"
+    "fmt"
+)
+
+func main() {
+
+}
+EOF
