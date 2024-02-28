@@ -7,6 +7,8 @@ then
 fi
 
 mkdir -p days/day-$1
+touch days/day-$1/input
+touch days/day-$1/test
 cat > days/day-$1/main.go << EOF
 package main
 
