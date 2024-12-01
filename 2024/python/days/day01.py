@@ -1,4 +1,5 @@
 import re
+from collections import Counter
 
 
 with open("input/day01", "r") as f:
@@ -12,12 +13,11 @@ with open("input/day01", "r") as f:
         r.append(int(ss[1]))
 
     lr.sort()
-    r.sort()
+
+    rc = Counter(r)
 
     res = 0
-    with open("out01", "w") as of:
-        for ln, rn in zip(lr, r):
-            res += abs(ln - rn)
-            print(f"{ln} {rn}", file=of)
+    for ln in lr:
+        res += ln * rc[ln]
 
     print(res)
