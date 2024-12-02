@@ -28,10 +28,20 @@ let part_one () =
   in
   let count =
     ints
-    |> List.map (fun x -> Bool.to_int (is_safe x))
-    |> List.fold_left ( + ) 0
+    |> List.fold_left (fun acc report -> acc + (Bool.to_int (is_safe report)))  0
   in
   string_of_int count
+;;
+
+
+let _part_two () =
+  let input = Advent.read_lines "./input/day02" in
+  let _ints =
+    List.map
+      (fun x -> List.map int_of_string (String.split_on_char ' ' x))
+      input
+  in
+  String.trim "todo: do part two"
 ;;
 
 let () =
