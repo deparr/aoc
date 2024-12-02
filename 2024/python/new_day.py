@@ -6,11 +6,14 @@ def main(input):
     res = part_one(input)
     print(res)
 
+
 def part_one(input: str):
     pass
 
+
 def part_two(input: str):
     pass
+
 
 if __name__ == "__main__":
     input = None
@@ -43,14 +46,6 @@ def main() -> int:
         print(out, file=of)
 
     print(f"day {day_num} created")
-
-    if input("add input? (y/n) ").lower() == "n":
-        return
-
-    day_in = input("paste input: ")
-
-    with open(f"./input/{day_str}", "w") as of:
-        print(day_in, file=of, end='')
 
 
 if __name__ == "__main__":
