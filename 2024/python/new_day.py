@@ -4,7 +4,9 @@ import os
 template = """
 def main(input):
     res = part_one(input)
-    print(res)
+    print(f"part_one: {res}")
+    res = part_two(input)
+    print(f"part_two: {res}")
 
 
 def part_one(input: str):
