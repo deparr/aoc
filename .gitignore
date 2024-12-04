@@ -1,4 +1,6 @@
 .zig-cache
 zig-out
 *.exe
+aoc-cookie
+input/
 
