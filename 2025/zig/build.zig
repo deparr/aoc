@@ -1,7 +1,5 @@
 const std = @import("std");
 
-const template = @embedFile("res/template.zig");
-
 var optimize: std.builtin.OptimizeMode = undefined;
 var target: std.Build.ResolvedTarget = undefined;
 
@@ -9,12 +7,12 @@ pub fn build(b: *std.Build) void {
     target = b.standardTargetOptions(.{});
     optimize = b.standardOptimizeOption(.{});
 
-    const next_step = b.step("next", "stub out the next day");
+    const new_day_step = b.step("new-day", "stub out the next day");
     const all_step = b.step("all", "build all days");
 
     const dayno: ?usize = b.option(usize, "day", "day number");
     const selected_day = dayno orelse get_latest_day(b);
-    doNextStep(b, next_step, selected_day);
+    doNewDayStep(b, new_day_step, selected_day);
 
     if (selected_day == 0) {
         fail(b, "day can't be zero");
@@ -32,10 +30,10 @@ pub fn build(b: *std.Build) void {
 
 }
 
-fn doNextStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
+fn doNewDayStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
     const day_path = b.fmt("src/day{d:02}.zig", .{day + 1});
-    const log = b.addSystemCommand(&.{ "echo", b.fmt("creating {s}...", .{day_path}) });
-    const cmd = b.addSystemCommand(&.{ "cp", "res/template.zig", day_path });
+    const log = b.addSystemCommand(&.{ "echo", b.fmt("creating {s}...", .{day_path}), " // TODO fetch the input as well" });
+    const cmd = b.addSystemCommand(&.{ "cp", "src/template.zig", day_path });
     cmd.step.dependOn(&log.step);
     create.dependOn(&cmd.step);
 }

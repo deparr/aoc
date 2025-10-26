@@ -1,0 +1,17 @@
+{
+  "name": "ts",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+      "day": "bun script/run.ts",
+      "new": "bun script/new-day.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript/native-preview": "^7.0.0-dev.20251025.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
