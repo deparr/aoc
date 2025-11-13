@@ -8,9 +8,11 @@ function partTwo(input: string): number {
     return 0;
 }
 
-const input = await Bun.stdin.text();
+if (import.meta.main) {
+    const input = await Bun.stdin.text();
 
-const res = partOne(input);
-const res2 = partTwo(input);
+    const res = partOne(input);
+    const res2 = partTwo(input);
 
-console.log(`part one: ${res}\npart two: ${res2}\n`);
+    console.log(`part one: ${res}\npart two: ${res2}\n`);
+}

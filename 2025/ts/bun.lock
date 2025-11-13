@@ -3,11 +3,9 @@
   "workspaces": {
     "": {
       "name": "ts",
-      "dependencies": {
-        "@typescript/native-preview": "^7.0.0-dev.20251025.1",
-      },
       "devDependencies": {
         "@types/bun": "latest",
+        "@typescript/native-preview": "^7.0.0-dev.20251025.1",
       },
       "peerDependencies": {
         "typescript": "^5",
