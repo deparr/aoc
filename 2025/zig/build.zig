@@ -10,6 +10,7 @@ pub fn build(b: *std.Build) void {
 
     const new_day_step = b.step("new-day", "stub out the next day");
     const all_step = b.step("all", "build all days");
+    const run_step = b.step("run", "run a given day on its specific input");
 
     year = b.option([]const u8, "year", "year number") orelse "2025";
     const dayno: ?usize = b.option(usize, "day", "day number");
@@ -28,7 +29,10 @@ pub fn build(b: *std.Build) void {
 
     doAllStep(b, all_step, selected_day);
 
-    createExecutableForDay(b, b.getInstallStep(), selected_day);
+    const exe = createExecutableForDay(b, b.getInstallStep(), selected_day);
+    const run_day_exe = b.addRunArtifact(exe);
+    run_day_exe.setStdIn(.{ .lazy_path = b.path(b.fmt("input/{d}", .{selected_day})) });
+    run_step.dependOn(&run_day_exe.step);
 }
 
 fn doNewDayStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
@@ -55,11 +59,11 @@ fn doNewDayStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
 
 fn doAllStep(b: *std.Build, all: *std.Build.Step, latest_day: usize) void {
     for (1..latest_day + 1) |day| {
-        createExecutableForDay(b, all, day);
+        _ = createExecutableForDay(b, all, day);
     }
 }
 
-fn createExecutableForDay(b: *std.Build, step: *std.Build.Step, num: usize) void {
+fn createExecutableForDay(b: *std.Build, step: *std.Build.Step, num: usize) *std.Build.Step.Compile {
     const source_file = b.fmt("src/day{d:02}.zig", .{num});
     const source_path = b.path(source_file);
     const day_name = b.fmt("day{d}", .{num});
@@ -76,6 +80,8 @@ fn createExecutableForDay(b: *std.Build, step: *std.Build.Step, num: usize) void
     const install = b.addInstallArtifact(exe, .{});
     install.step.dependOn(&check_file.step);
     step.dependOn(&install.step);
+
+    return exe;
 }
 
 fn fail(b: *std.Build, msg: []const u8) void {
