@@ -15,27 +15,29 @@ pub fn build(b: *std.Build) void {
     year = b.option([]const u8, "year", "year number") orelse "2025";
     const dayno: ?usize = b.option(usize, "day", "day number");
     const selected_day = dayno orelse getLatestDay(b);
-    doNewDayStep(b, new_day_step, selected_day);
+    const next_day = if (dayno) |day| day else selected_day + 1;
 
-    if (selected_day == 0) {
-        fail(b, "day can't be zero");
-        return;
-    }
-
-    if (selected_day > 12) {
-        std.debug.print("Advent of Code is over, Merry Christmas 🎄!\n", .{});
-        return;
-    }
-
+    doNewDayStep(b, new_day_step, next_day);
     doAllStep(b, all_step, selected_day);
+
 
     const exe = createExecutableForDay(b, b.getInstallStep(), selected_day);
     const run_day_exe = b.addRunArtifact(exe);
     run_day_exe.setStdIn(.{ .lazy_path = b.path(b.fmt("input/{d}", .{selected_day})) });
     run_step.dependOn(&run_day_exe.step);
+
+    if (selected_day == 0) {
+        const no_days_fail = b.addFail("no days available, nothing to do");
+        exe.step.dependOn(&no_days_fail.step);
+        run_day_exe.step.dependOn(&no_days_fail.step);
+    }
 }
 
 fn doNewDayStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
+    if (day > 12) {
+        std.debug.print("Advent of Code is over, Merry Christmas 🎄!\n", .{});
+        return;
+    }
     const fetch = b.addExecutable(.{
         .name = "fetch",
         .root_module = b.createModule(.{
@@ -50,7 +52,11 @@ fn doNewDayStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
     run_fetch.addArg(b.fmt("{d}", .{day}));
     run_fetch.setName("fetch day input");
 
-    const day_path = b.fmt("src/day{d:02}.zig", .{day + 1});
+    const day_path = b.fmt("src/day{d:02}.zig", .{day});
+    if (std.fs.cwd().statFile(day_path)) |_| {
+        fail(b, create, b.fmt("{s} already exists", .{day_path}));
+        return;
+    } else |_| {}
     const write_templ = TemplateDayStep.create(b, "src/build/template.zig", day_path);
 
     create.dependOn(&write_templ.step);
@@ -84,25 +90,25 @@ fn createExecutableForDay(b: *std.Build, step: *std.Build.Step, num: usize) *std
     return exe;
 }
 
-fn fail(b: *std.Build, msg: []const u8) void {
+fn fail(b: *std.Build, s: *std.Build.Step, msg: []const u8) void {
     const fail_step = b.addFail(msg);
-    b.default_step.dependOn(&fail_step.step);
+    s.dependOn(&fail_step.step);
 }
 
 fn getLatestDay(b: *std.Build) usize {
     var src = std.fs.cwd().openDir("src", .{ .iterate = true }) catch |err| {
-        fail(b, b.fmt("{t}\n", .{err}));
+        fail(b, b.default_step, b.fmt("{t}\n", .{err}));
         return 0;
     };
     defer src.close();
     var iter = src.walk(b.allocator) catch |err| {
-        fail(b, b.fmt("{t}\n", .{err}));
+        fail(b, b.default_step, b.fmt("{t}\n", .{err}));
         return 0;
     };
     defer iter.deinit();
     var latest_day: usize = 0;
     while (iter.next() catch |err| {
-        fail(b, b.fmt("{t}\n", .{err}));
+        fail(b, b.default_step, b.fmt("{t}\n", .{err}));
         return 0;
     }) |entry| {
         if (entry.kind != .file)

@@ -56,7 +56,7 @@ pub fn main() !void {
     output_file.close();
 
     if (res.status != .ok)
-        std.debug.print("fetch failed with status {t}", .{res.status});
+        std.debug.print("fetch failed with status {t}\n", .{res.status});
 
     root.completeOne();
 }
