@@ -8,7 +8,7 @@ function partTwo(input: string): number {
     return 0;
 }
 
-if (import.meta.main) {
+export async function main() {
     const input = await Bun.stdin.text();
 
     const res = partOne(input);
@@ -16,3 +16,5 @@ if (import.meta.main) {
 
     console.log(`part one: ${res}\npart two: ${res2}\n`);
 }
+
+if (import.meta.main) await main();

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-const year = "2025";
+const year = "2024";
 const maxDays = 12;
 
 async function main(): Promise<number> {
