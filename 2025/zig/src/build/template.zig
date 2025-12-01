@@ -17,5 +17,6 @@ pub fn main() !void {
     const res_1 = partOne(input);
     const res_2 = partTwo(input);
     std.debug.print("part one: {d}\npart two {d}\n", .{ res_1, res_2 });
+    gpa.free(input);
 }
 
