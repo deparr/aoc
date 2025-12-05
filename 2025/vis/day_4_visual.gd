@@ -13,6 +13,7 @@ const avil_byte = ord('@')
 @export var grid_size := Vector2i(32, 32)
 
 var grid: Array[PackedByteArray]
+var solved := false
 
 func _draw() -> void:
 	if not grid or grid.size() == 0:
@@ -29,7 +30,7 @@ func _draw() -> void:
 				open_byte:
 					color = open
 				avil_byte:
-					color = available
+					color = done if solved else available
 
 			var rect := Rect2(grid_size * Vector2i(j, i), grid_size)
 			draw_rect(rect, color)

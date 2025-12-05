@@ -3,7 +3,7 @@ extends Node2D
 const dot = ord(".")
 const ex = ord("x")
 
-var input: String
+var input: PackedStringArray
 var grid: Array[PackedByteArray] = []
 
 @onready var visual: Node2D = %Grid
@@ -15,12 +15,20 @@ func _ready() -> void:
 		push_error("unable to open file:", error_string(FileAccess.get_open_error()))
 		return
 	f = f.strip_edges()
-	input = f
+	input = f.split("\n", false)
 
 	%Solve.pressed.connect(_on_solve_pressed)
 
 
 func _on_solve_pressed() -> void:
+	grid.resize(input.size())
+	for i in grid.size():
+		grid[i] = input[i].strip_edges().to_ascii_buffer()
+
+	visual.grid = grid
+	visual.grid_size = get_viewport_rect().size / Vector2(float(grid[0].size()), float(grid.size()))
+	visual.solved = false
+
 	var res := await solve()
 	print(res)
 
@@ -86,14 +94,6 @@ func update_visual() -> void:
 
 
 func solve() -> int:
-	var lines := input.split("\n", false)
-	grid.resize(lines.size())
-	for i in grid.size():
-		grid[i] = lines[i].strip_edges().to_ascii_buffer()
-
-	visual.grid = grid
-	visual.grid_size = get_viewport_rect().size / Vector2(float(grid[0].size()), float(grid.size()))
-
 	var accessible := 0
 	var wait_time := 0.25
 	while true:
@@ -104,7 +104,7 @@ func solve() -> int:
 		clear_marked()
 		await get_tree().create_timer(wait_time).timeout
 		if newly_accessible == 0:
-			visual.available = visual.done
+			visual.solved = true
 		update_visual()
 
 		%Removed.text = "removed paper rolls: %d" % accessible
