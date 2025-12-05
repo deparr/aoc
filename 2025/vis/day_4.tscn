@@ -1,0 +1,41 @@
+[gd_scene load_steps=3 format=3 uid="uid://3241mmawp45s"]
+
+[ext_resource type="Script" uid="uid://c18fssal20gi0" path="res://day_4.gd" id="1_ip76e"]
+[ext_resource type="Script" uid="uid://ccvqkl7mnmwvm" path="res://day_4_visual.gd" id="2_6fy1i"]
+
+[node name="Day4" type="Node2D"]
+script = ExtResource("1_ip76e")
+
+[node name="Ui" type="CanvasLayer" parent="."]
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Ui"]
+offset_left = 9.0
+offset_top = 574.0
+offset_right = 396.0
+offset_bottom = 605.0
+size_flags_horizontal = 3
+theme_override_constants/separation = 100
+
+[node name="Solve" type="Button" parent="Ui/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+text = "solve!"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Ui/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 8
+
+[node name="Removed" type="Label" parent="Ui/HBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "removed roles: 0"
+
+[node name="Done" type="Label" parent="Ui/HBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Grid" type="Node2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(31, 18)
+script = ExtResource("2_6fy1i")
