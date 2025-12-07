@@ -106,8 +106,7 @@ pub fn main() !void {
     const gpa = adlib.allocator;
     const input = try adlib.collectStdin(gpa);
     const trimmed = std.mem.trim(u8, input, &std.ascii.whitespace);
-    // const res_1 = try partOne(trimmed);
-    const res_1 = 0;
+    const res_1 = try partOne(trimmed);
     const res_2 = try partTwoTwo(trimmed);
     std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
     gpa.free(input);
