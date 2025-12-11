@@ -68,7 +68,7 @@ fn partOne(input: []const u8) !u32 {
     std.sort.pdq(Edge, distances.items, {}, Edge.lessThan);
 
     var circuits = try std.ArrayList(NodeSet).initCapacity(adlib.allocator, 50);
-    for (0..200) |_| {
+    for (0..1000) |_| {
         const shortest_edge = distances.pop().?;
         std.debug.print("processing edge: {any}\n", .{shortest_edge});
         var a_circuit: ?*NodeSet = null;
