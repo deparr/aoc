@@ -23,7 +23,6 @@ pub fn build(b: *std.Build) void {
 
     const exe = createExecutableForDay(b, b.getInstallStep(), selected_day);
     const run_day_exe = b.addRunArtifact(exe);
-    run_day_exe.setStdIn(.{ .lazy_path = b.path(b.fmt("input/{d}", .{selected_day})) });
     run_step.dependOn(&run_day_exe.step);
 
     if (selected_day == 0) {

@@ -1,11 +1,10 @@
 const std = @import("std");
 const adlib = @import("adlib.zig");
 
-fn partOne(input: []const u8) !u32 {
+fn partOne(input: *std.Io.Reader) !u32 {
     var password: u32 = 0;
-    var lineIter = std.mem.tokenizeScalar(u8, input, '\n');
     var dial: i32 = 50;
-    while (lineIter.next()) |line| {
+    while (try input.takeDelimiter('\n')) |line| {
         const sign: i32 = if (line[0] == 'L') -1 else 1;
         const turns = try std.fmt.parseInt(i32, line[1..], 10);
         dial = @mod(dial + sign * turns, 100);
@@ -16,11 +15,10 @@ fn partOne(input: []const u8) !u32 {
     return password;
 }
 
-fn partTwo(input: []const u8) !u32 {
+fn partTwo(input: *std.Io.Reader) !u32 {
     var password: u32 = 0;
-    var lineIter = std.mem.tokenizeScalar(u8, input, '\n');
     var dial: i32 = 50;
-    while (lineIter.next()) |line| {
+    while (try input.takeDelimiter('\n')) |line| {
         const sign: i32 = if (line[0] == 'L') -1 else 1;
         const raw_turns = try std.fmt.parseInt(i32, line[1..], 10);
         const mod_turns = @mod(raw_turns, 100);
@@ -42,10 +40,12 @@ fn partTwo(input: []const u8) !u32 {
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const res_1 = try partOne(input);
-    const res_2 = try partTwo(input);
+    var buf: [4096]u8 = undefined;
+    const input = try adlib.inputFile("1");
+    var reader = input.reader(&buf);
+    const res_1 = try partOne(&reader.interface);
+    try reader.seekTo(0);
+    const res_2 = try partTwo(&reader.interface);
     std.debug.print("part one: {d}\npart two {d}\n", .{ res_1, res_2 });
-    gpa.free(input);
+    input.close();
 }

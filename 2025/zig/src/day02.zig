@@ -1,11 +1,10 @@
 const std = @import("std");
 const adlib = @import("adlib.zig");
 
-fn partOne(input: []const u8) !u64 {
+fn partOne(input: *std.Io.Reader) !u64 {
     var id_sum: u64 = 0;
-    var range_iter = std.mem.tokenizeScalar(u8, input, ',');
     var num_buf: [32]u8 = undefined;
-    while (range_iter.next()) |range| {
+    while (try input.takeDelimiter(',')) |range| {
         var split = std.mem.splitScalar(u8, range, '-');
         const los = split.first();
         const his = split.next();
@@ -27,11 +26,10 @@ fn partOne(input: []const u8) !u64 {
     return id_sum;
 }
 
-fn partTwo(input: []const u8) !u64 {
+fn partTwo(input: *std.Io.Reader) !u64 {
     var id_sum: u64 = 0;
-    var range_iter = std.mem.tokenizeScalar(u8, input, ',');
     var num_buf: [32]u8 = undefined;
-    while (range_iter.next()) |range| {
+    while (try input.takeDelimiter(',')) |range| {
         var split = std.mem.splitScalar(u8, range, '-');
         const los = split.first();
         const his = split.next();
@@ -54,11 +52,12 @@ fn partTwo(input: []const u8) !u64 {
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const trimmed = std.mem.trim(u8, input, &std.ascii.whitespace);
-    const res_1 = try partOne(trimmed);
-    const res_2 = try partTwo(trimmed);
+    var buf: [4096]u8 = undefined;
+    const input = try adlib.inputFile("2");
+    var reader = input.reader(&buf);
+    const res_1 = try partOne(&reader.interface);
+    try reader.seekTo(0);
+    const res_2 = try partTwo(&reader.interface);
     std.debug.print("part one: {d}\npart two {d}\n", .{ res_1, res_2 });
-    gpa.free(input);
+    input.close();
 }

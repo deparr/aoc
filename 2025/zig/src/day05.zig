@@ -33,12 +33,11 @@ const Range = struct {
     }
 };
 
-fn partOne(input: []const u8) !u32 {
+fn partOne(input: *std.Io.Reader) !u32 {
     var num_fresh: u32 = 0;
-    var line_it = std.mem.tokenizeScalar(u8, input, '\n');
     var processed_ranges = false;
     var ranges: std.ArrayList(Range) = try .initCapacity(adlib.allocator, 20);
-    while (line_it.next()) |line| {
+    while (try input.takeDelimiter('\n')) |line| {
         if (!processed_ranges) {
             if (std.mem.indexOfScalar(u8, line, '-')) |idx| {
                 const lower = std.fmt.parseInt(u64, line[0..idx], 10) catch unreachable;
@@ -64,11 +63,10 @@ fn partOne(input: []const u8) !u32 {
     return num_fresh;
 }
 
-fn partTwo(input: []const u8) !u64 {
+fn partTwo(input: *std.Io.Reader) !u64 {
     var num_valid: u64 = 0;
-    var line_it = std.mem.tokenizeScalar(u8, input, '\n');
     var ranges: std.ArrayList(Range) = try .initCapacity(adlib.allocator, 20);
-    while (line_it.next()) |line| {
+    while (try input.takeDelimiter('\n')) |line| {
         if (std.mem.indexOfScalar(u8, line, '-')) |idx| {
             const lower = std.fmt.parseInt(u64, line[0..idx], 10) catch unreachable;
             const upper = std.fmt.parseInt(u64, line[idx + 1 ..], 10) catch unreachable;
@@ -96,10 +94,13 @@ fn partTwo(input: []const u8) !u64 {
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const res_1 = try partOne(input);
-    const res_2 = try partTwo(input);
-    std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
-    gpa.free(input);
+    var buf: [4096]u8 = undefined;
+    const input = try adlib.inputFile("5");
+    var reader = input.reader(&buf);
+    const res_1 = try partOne(&reader.interface);
+    try reader.seekTo(0);
+    const res_2 = try partTwo(&reader.interface);
+    std.debug.print("part one: {d}\npart two {d}\n", .{ res_1, res_2 });
+    input.close();
 }
+

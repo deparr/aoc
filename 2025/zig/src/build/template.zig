@@ -1,22 +1,24 @@
 const std = @import("std");
 const adlib = @import("adlib.zig");
 
-fn partOne(input: []const u8) u32 {
+fn partOne(input: *std.Io.Reader) !u32 {
     _ = input;
     return 0;
 }
 
-fn partTwo(input: []const u8) u32 {
+fn partTwo(input: *std.Io.Reader) !u32 {
     _ = input;
     return 0;
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const res_1 = partOne(input);
-    const res_2 = partTwo(input);
+    var buf: [4096]u8 = undefined; 
+    const input = try adlib.inputFile("DAY");
+    var reader = input.reader(&buf);
+    const res_1 = try partOne(&reader.interface);
+    try reader.seekTo(0);
+    const res_2 = try partTwo(&reader.interface);
     std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
-    gpa.free(input);
+    input.close();
 }
 

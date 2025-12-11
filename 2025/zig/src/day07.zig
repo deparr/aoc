@@ -6,7 +6,7 @@ fn solve(grid: [][]u8) !struct { u32, u64 } {
 
     const start = std.mem.indexOfScalar(u8, grid[0], 'S').?;
 
-    var active_beams: [141]u64 = .{0} ** 141;
+    var active_beams: [141]u64 = @splat(0);
     active_beams[start] = 1;
 
     var split_count: u32 = 0;
@@ -36,11 +36,12 @@ fn solve(grid: [][]u8) !struct { u32, u64 } {
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const grid = try adlib.makeGrid(gpa, input);
+    var buf: [4096]u8 = undefined;
+    const input = try adlib.inputFile("7");
+    var reader = input.reader(&buf);
+    const grid = try adlib.streamGrid(adlib.allocator, &reader.interface);
     const res_1, const res_2 = try solve(grid);
     std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
-    gpa.free(grid);
-    gpa.free(input);
+    input.close();
+    adlib.freeGrid(adlib.allocator, grid);
 }

@@ -15,11 +15,9 @@ const Coord = struct {
     }
 };
 
-fn partOne(input: []const u8) !u64 {
-    const count = std.mem.count(u8, input, "\n");
-    var coords: std.ArrayList(Coord) = try .initCapacity(adlib.allocator, count);
-    var line_it = std.mem.tokenizeScalar(u8, input, '\n');
-    while (line_it.next()) |line| {
+fn partOne(input: *std.Io.Reader) !u64 {
+    var coords: std.ArrayList(Coord) = try .initCapacity(adlib.allocator, 500);
+    while (try input.takeDelimiter('\n')) |line| {
         const comma = std.mem.indexOfScalar(u8, line, ',').?;
         coords.appendAssumeCapacity(.{
             .y = try std.fmt.parseInt(u64, line[0..comma], 10),
@@ -199,10 +197,11 @@ fn partTwo(input: []const u8) !u64 {
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const res_1 = try partOne(input);
-    const res_2 = try partTwo(input);
-    std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
-    gpa.free(input);
+    var buf: [4096]u8 = undefined;
+    const input = try adlib.inputFile("9");
+    var reader = input.reader(&buf);
+    const res_1 = try partOne(&reader.interface);
+    // const res_2 = try partTwo(input);
+    std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, 0 });
+    input.close();
 }

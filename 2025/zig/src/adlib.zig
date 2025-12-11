@@ -27,6 +27,21 @@ pub fn makeGrid(gpa: std.mem.Allocator, input: []const u8) ![][]u8 {
     return @ptrCast(try grid.toOwnedSlice(gpa));
 }
 
+pub fn streamGrid(gpa: std.mem.Allocator, stream: *std.Io.Reader) ![][]u8 {
+    var grid: std.ArrayList([]u8) = try .initCapacity(gpa, 100);
+    while (try stream.takeDelimiter('\n')) |line| {
+        std.debug.assert(line.len > 0);
+        try grid.append(gpa, try gpa.dupe(u8, line));
+    }
+
+    return try grid.toOwnedSlice(gpa);
+}
+
+pub fn freeGrid(gpa: std.mem.Allocator, grid: [][]u8) void {
+    for (grid) |row| gpa.free(row);
+    gpa.free(grid);
+}
+
 pub fn dumpGrid(grid: [][]u8) void {
     for (grid) |row| {
         std.debug.print(".{{ ", .{});

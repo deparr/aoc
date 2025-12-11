@@ -69,12 +69,15 @@ fn partTwo(grid: [][]u8) !u32 {
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const grid = try adlib.makeGrid(gpa, input);
+    var buf: [4096]u8 = undefined;
+    const input = try adlib.inputFile("4");
+    var reader = input.reader(&buf);
+    const grid = try adlib.streamGrid(adlib.allocator, &reader.interface);
     const res_1 = try partOne(grid);
+    try reader.seekTo(0);
     const res_2 = try partTwo(grid);
     std.debug.print("part one: {d}\npart two {d}\n", .{ res_1, res_2 });
-    gpa.free(grid);
-    gpa.free(input);
+    adlib.freeGrid(adlib.allocator, grid);
+    input.close();
 }
+

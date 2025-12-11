@@ -8,21 +8,11 @@ const Op = enum {
 
 const Expr = struct { v: [4]u64 };
 
-fn partOne(input: []const u8) !u64 {
-    const op_line = input[std.mem.lastIndexOfScalar(u8, input, '\n').? + 1 ..];
-    var op_iter = std.mem.tokenizeScalar(u8, op_line, ' ');
-    var ops: std.ArrayList(Op) = try .initCapacity(adlib.allocator, 1024);
-    while (op_iter.next()) |op| {
-        const parsed: Op = if (op[0] == '*') .mul else .add;
-        try ops.append(adlib.allocator, parsed);
-    }
-
-    var line_iter = std.mem.tokenizeScalar(u8, input, '\n');
+fn partOne(input: *std.Io.Reader) !u64 {
     var line_nr: u8 = 0;
-    var line: []const u8 = undefined;
-    var exprs: std.ArrayList(Expr) = try .initCapacity(adlib.allocator, ops.items.len);
+    var exprs: std.ArrayList(Expr) = try .initCapacity(adlib.allocator, 1024);
     while (line_nr < 4) : (line_nr += 1) {
-        line = line_iter.next().?;
+        const line = (try input.takeDelimiter('\n')).?;
         var num_iter = std.mem.tokenizeScalar(u8, line, ' ');
         var i: u32 = 0;
         while (num_iter.next()) |num| {
@@ -36,6 +26,14 @@ fn partOne(input: []const u8) !u64 {
             }
             i += 1;
         }
+    }
+
+    const op_line = (try input.takeDelimiter('\n')).?;
+    var op_iter = std.mem.tokenizeScalar(u8, op_line, ' ');
+    var ops: std.ArrayList(Op) = try .initCapacity(adlib.allocator, 1024);
+    while (op_iter.next()) |op| {
+        const parsed: Op = if (op[0] == '*') .mul else .add;
+        try ops.append(adlib.allocator, parsed);
     }
 
     var grand_total: u64 = 0;
@@ -53,19 +51,13 @@ fn partOne(input: []const u8) !u64 {
     return grand_total;
 }
 
-fn partTwoTwo(input: []const u8) !u64 {
-    var op_line: []const u8 = undefined;
+fn partTwoTwo(input: *std.Io.Reader) !u64 {
     var digit_lines: [4][]const u8 = undefined;
-    {
-        var lf_idx = std.mem.indexOfScalar(u8, input, '\n').?;
-        var cursor: usize = 0;
-        for (0..digit_lines.len) |i| {
-            digit_lines[i] = input[cursor..lf_idx];
-            cursor = lf_idx + 1;
-            lf_idx = std.mem.indexOfScalarPos(u8, input, cursor, '\n') orelse 0;
-        }
-        op_line = input[cursor..];
+    for (0..digit_lines.len) |i| {
+        const line = (try input.takeDelimiter('\n')).?;
+        digit_lines[i] = try adlib.allocator.dupe(u8, line);
     }
+    const op_line = (try input.takeDelimiter('\n')).?;
 
     var grand_total: u64 = 0;
     var start: usize = 0;
@@ -73,7 +65,7 @@ fn partTwoTwo(input: []const u8) !u64 {
     const pow_10: [4]u64 = .{ 1000, 100, 10, 1 };
     while (start < op_line.len) {
         end = std.mem.indexOfAnyPos(u8, op_line, start + 1, "*+") orelse op_line.len;
-        const digit_end = if (end != op_line.len) end - 1 else end + 1;
+        const digit_end = if (end != op_line.len) end - 1 else end;
         var operands: [4]u64 = .{ 0, 0, 0, 0 };
         for (start..digit_end) |digit| {
             for (0..digit_lines.len) |i| {
@@ -99,15 +91,19 @@ fn partTwoTwo(input: []const u8) !u64 {
         start = end;
     }
 
+    for (digit_lines) |line| adlib.allocator.free(line);
+
     return grand_total;
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const trimmed = std.mem.trim(u8, input, &std.ascii.whitespace);
-    const res_1 = try partOne(trimmed);
-    const res_2 = try partTwoTwo(trimmed);
-    std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
-    gpa.free(input);
+    var buf: [4096]u8 = undefined;
+    const input = try adlib.inputFile("6");
+    var reader = input.reader(&buf);
+    const res_1 = try partOne(&reader.interface);
+    try reader.seekTo(0);
+    const res_2 = try partTwoTwo(&reader.interface);
+    std.debug.print("part one: {d}\npart two {d}\n", .{ res_1, res_2 });
+    input.close();
 }
+
