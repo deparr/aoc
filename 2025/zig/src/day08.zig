@@ -7,10 +7,11 @@ const Point = struct {
     z: f32,
 
     fn dist_to(self: Point, other: Point) f32 {
+        const x = other.x - self.x;
+        const y = other.y - self.y;
+        const z = other.z - self.z;
         return std.math.sqrt(
-            self.x * other.x +
-                self.y * other.y +
-                self.z * other.z,
+            x * x + y * y + z * z
         );
     }
 
@@ -37,11 +38,22 @@ const Edge = struct {
 
 const NodeSet = std.AutoHashMap(u16, void);
 
-fn partOne(input: []const u8) !u32 {
-    const count = std.mem.count(u8, input, "\n");
-    var points: std.ArrayList(Point) = try .initCapacity(adlib.allocator, count);
-    var line_it = std.mem.tokenizeScalar(u8, input, '\n');
-    while (line_it.next()) |line| {
+fn max3(list: []NodeSet) u32 {
+    var max: [3]u32 = .{ 1, 1, 1 };
+    for (list) |item| {
+        if (item.count() > max[0]) {
+            max[2] = max[1];
+            max[1] = max[0];
+            max[0] = item.count();
+        }
+    }
+    return max[0] * max[1] * max[2];
+}
+
+fn solve(input: *std.Io.Reader) !struct { u32, u64 } {
+    var points: std.ArrayList(Point) = try .initCapacity(adlib.allocator, 1000);
+    while (true) {
+        const line = (try input.takeDelimiter('\n')) orelse break;
         const comma_1 = std.mem.indexOfScalar(u8, line, ',').?;
         const comma_2 = std.mem.indexOfScalarPos(u8, line, comma_1 + 1, ',').?;
         points.appendAssumeCapacity(.{
@@ -50,10 +62,10 @@ fn partOne(input: []const u8) !u32 {
             .z = try std.fmt.parseFloat(f32, line[comma_2 + 1 ..]),
         });
     }
+    const count = points.items.len;
 
     var distances = try std.ArrayList(Edge).initCapacity(adlib.allocator, count * (count - 1) / 2);
     distances.items.len = distances.capacity;
-    defer distances.deinit(adlib.allocator);
     for (0..count - 1) |i| {
         const a = points.items[i];
         for (i + 1..count) |j| {
@@ -68,9 +80,16 @@ fn partOne(input: []const u8) !u32 {
     std.sort.pdq(Edge, distances.items, {}, Edge.lessThan);
 
     var circuits = try std.ArrayList(NodeSet).initCapacity(adlib.allocator, 50);
-    for (0..1000) |_| {
-        const shortest_edge = distances.pop().?;
-        std.debug.print("processing edge: {any}\n", .{shortest_edge});
+    var shortest_edge: Edge = undefined;
+    var product_at_1000_joins: ?u32 = null;
+    var joins: u32 = 0;
+    while(true) : (joins += 1) {
+        if (product_at_1000_joins == null and joins == 999)
+            product_at_1000_joins = max3(circuits.items);
+        if (circuits.items.len > 0 and circuits.items[0].count() >= 1000)
+            break;
+
+        shortest_edge = distances.pop().?;
         var a_circuit: ?*NodeSet = null;
         var b_circuit: ?*NodeSet = null;
         var a_idx: usize = 0;
@@ -92,7 +111,7 @@ fn partOne(input: []const u8) !u32 {
             var new_circuit = NodeSet.init(adlib.allocator);
             try new_circuit.put(shortest_edge.a, {});
             try new_circuit.put(shortest_edge.b, {});
-            circuits.appendAssumeCapacity(new_circuit);
+            try circuits.append(adlib.allocator, new_circuit);
             continue;
         }
 
@@ -101,9 +120,9 @@ fn partOne(input: []const u8) !u32 {
         if (a_circuit != null and b_circuit != null) {
             var source, var sink, const source_idx = blk: {
                 if (a_circuit.?.count() > b_circuit.?.count()) {
-                    break :blk .{ a_circuit.?, b_circuit.?, a_idx };
-                } else {
                     break :blk .{ b_circuit.?, a_circuit.?, b_idx };
+                } else {
+                    break :blk .{ a_circuit.?, b_circuit.?, a_idx };
                 }
             };
             var source_keys = source.keyIterator();
@@ -118,39 +137,26 @@ fn partOne(input: []const u8) !u32 {
             try circuit.put(shortest_edge.a, {});
         }
 
-        std.debug.print("a: 0x{x} b: 0x{x}\n", .{
-            @as(usize, @intFromPtr(a_circuit)),
-            @as(usize, @intFromPtr(b_circuit)),
-        });
-
-        for (circuits.items) |*c| {
-            std.debug.print("0x{x} |{d}|\n", .{ @as(usize, @intFromPtr(c)), c.count() });
-            var key_iter = c.keyIterator();
-            while (key_iter.next()) |key| {
-                std.debug.print(" {d}", .{key.*});
-            }
-        }
-        std.debug.print("\n", .{});
     }
 
-    std.debug.print("{d}\n", .{circuits.items.len});
-    for (circuits.items) |circuit| {
-        std.debug.print("{d}\n", .{circuit.count()});
-    }
 
-    return 0;
-}
+    const ax: u64 = @intFromFloat(points.items[shortest_edge.a].x);
+    const bx: u64 = @intFromFloat(points.items[shortest_edge.b].x);
+    const last_edge_x_product = ax * bx;
 
-fn partTwo(input: []const u8) u32 {
-    _ = input;
-    return 0;
+    for (circuits.items) |*c| c.deinit();
+    circuits.deinit(adlib.allocator);
+    distances.deinit(adlib.allocator);
+    points.deinit(adlib.allocator);
+
+    return .{ product_at_1000_joins.?, last_edge_x_product };
 }
 
 pub fn main() !void {
-    const gpa = adlib.allocator;
-    const input = try adlib.collectStdin(gpa);
-    const res_1 = try partOne(input);
-    const res_2 = partTwo(input);
+    var buf: [4096]u8 = undefined;
+    var input = try adlib.inputFile("8");
+    var reader = input.reader(&buf);
+    const res_1, const res_2 = try solve(&reader.interface);
     std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
-    gpa.free(input);
+    input.close();
 }
