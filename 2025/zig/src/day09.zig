@@ -10,6 +10,10 @@ const Coord = struct {
             (@max(self.y, other.y) - @min(self.y, other.y) + 1);
     }
 
+    fn toSigned(self: Coord) struct { x: i64, y: i64 } {
+        return .{ .x = @bitCast(self.x), .y = @intCast(self.y) };
+    }
+
     pub fn format(self: Coord, writer: *std.Io.Writer) std.Io.Writer.Error!void {
         try writer.print("{d},{d}", self);
     }
@@ -78,7 +82,7 @@ const Range = struct {
 
 fn makeEmptyGrid(rows: u64, cols: u64) ![]std.DynamicBitSet {
     const allocator = adlib.allocator;
-    var row_list: std.ArrayList([]std.DynamicBitSet) = try .initCapacity(allocator, rows);
+    var row_list: std.ArrayList(std.DynamicBitSet) = try .initCapacity(allocator, rows);
     for (0..rows) |_| {
         const row = try std.DynamicBitSet.initEmpty(allocator, cols);
         row_list.appendAssumeCapacity(row);
@@ -86,21 +90,133 @@ fn makeEmptyGrid(rows: u64, cols: u64) ![]std.DynamicBitSet {
     return row_list.toOwnedSlice(allocator);
 }
 
-fn dumpGrid(grid: [][]u8) void {
+fn dumpGrid(grid: []std.DynamicBitSet) void {
     for (grid) |row| {
-        std.debug.print("{s}\n", .{row});
+        for (0..row.unmanaged.bit_length) |i| {
+            std.debug.print("{c}", .{if (row.isSet(i)) @as(u8, '#') else @as(u8, '.')});
+        }
+        std.debug.print("\n", .{});
     }
-
-    std.debug.print("\n", .{});
 }
 
-fn partTwo(input: []const u8) !u64 {
-    const count = std.mem.count(u8, input, "\n");
-    var coords: std.ArrayList(Coord) = try .initCapacity(adlib.allocator, count);
-    var line_it = std.mem.tokenizeScalar(u8, input, '\n');
+fn dumpGridImage(grid: []std.DynamicBitSet) void {
+    const image_width = 512;
+    const image_height = 512;
+    const stride = image_width * 3;
+    var image: [image_width * image_height * 3]u8 = @splat(0);
+    for (grid, 0..) |row, y| {
+        const image_y = y / image_height;
+        for (0..row.unmanaged.bit_length) |x| {
+            const image_x = x / image_width;
+            const px = image_y * stride + image_x * 3;
+            if (row.isSet(x)) {
+                image[px] = 0xff;
+                image[px + 1] = 0x0;
+                image[px + 2] = 0x0;
+            }
+        }
+    }
+
+    var buf: [1024]u8 = undefined;
+    const file = std.fs.cwd().createFile("9-image.ppm", .{}) catch unreachable;
+    var writer = file.writer(&buf);
+    writer.interface.print("P6\n{d} {d}\n255\n", .{ image_width, image_height }) catch unreachable;
+    writer.interface.writeAll(&image) catch unreachable;
+    writer.interface.flush() catch unreachable;
+}
+
+fn connect(grid: []std.DynamicBitSet, a: Coord, b: Coord) void {
+    const as = a.toSigned();
+    const bs = b.toSigned();
+    if (as.x == bs.x) {
+        const inc: i64 = if (bs.y - as.y < 0) -1 else 1;
+        var y = as.y + inc;
+        while (y != bs.y) : (y += inc) {
+            grid[@abs(y)].set(a.x);
+        }
+        return;
+    }
+
+    grid[a.y].setRangeValue(.{
+        .start = @min(a.x, b.x),
+        .end = @max(a.x, b.x),
+    }, true);
+}
+
+fn validHorizontal(row: std.DynamicBitSet, start: usize, end: usize) bool {
+    var x = start;
+    var rg_count: u32 = 0;
+    var prev: u8 = 1;
+    while (x < end) : (x += 1) {
+        prev, _ = @shlWithOverflow(prev, @as(u3, 1));
+        if (row.isSet(x)) {
+            rg_count += 1;
+            prev |= 1;
+        }
+        const check = prev & 0b111;
+        if (check == 0b110 or check == 0b011) return false;
+    }
+
+    return rg_count % 2 == 1;
+}
+
+fn validVertical(grid: []std.DynamicBitSet, start: usize, end: usize, col: usize) bool {
+    var y = start;
+    var rg_count: u32 = 0;
+    var prev: u8 = 1;
+    while (y < end) : (y += 1) {
+        prev, _ = @shlWithOverflow(prev, @as(u3, 1));
+        if (grid[y].isSet(col)) {
+            rg_count += 1;
+            prev |= 1;
+        }
+        const check = prev & 0b111;
+        if (check == 0b110 or check == 0b011) return false;
+    }
+
+    return rg_count % 2 == 1;
+}
+
+fn validRect2(grid: []std.DynamicBitSet, a: Coord, b: Coord) bool {
+    var aa, var bb = if (a.x < b.x) .{ a, b } else .{ b, a };
+    const x = aa.x + 1;
+    const x_end = bb.x;
+
+    if (!validHorizontal(grid[aa.y], x, x_end)) return false;
+    if (!validHorizontal(grid[bb.y], x, x_end)) return false;
+
+    aa, bb = if (a.y < b.y) .{ a, b } else .{ b, a };
+    const y = aa.y + 1;
+    const y_end = bb.y;
+    if (!validVertical(grid, y, y_end, aa.x)) return false;
+    if (!validVertical(grid, y, y_end, bb.x)) return false;
+
+    return true;
+}
+
+fn validRect(grid: []std.DynamicBitSet, a: Coord, b: Coord) bool {
+    const ul = Coord {
+        .x = @min(a.x, b.x),
+        .y = @min(a.y, b.y),
+    };
+    const br = Coord {
+        .x = @max(a.x, b.x),
+        .y = @max(a.y, b.y),
+    };
+    for (ul.y..br.y + 1) |y| {
+        const row = grid[y];
+        for (ul.x..br.x+1) |x| {
+            if (!row.isSet(x)) return false;
+        }
+    }
+    return true;
+}
+
+fn partTwo(input: *std.Io.Reader) !u64 {
+    var coords: std.ArrayList(Coord) = try .initCapacity(adlib.allocator, 500);
     var range_x = Range{};
     var range_y = Range{};
-    while (line_it.next()) |line| {
+    while (try input.takeDelimiter('\n')) |line| {
         const comma = std.mem.indexOfScalar(u8, line, ',').?;
         const coord = Coord{
             .x = try std.fmt.parseInt(u64, line[0..comma], 10),
@@ -117,82 +233,50 @@ fn partTwo(input: []const u8) !u64 {
 
     const min_x = range_x.low.?;
     const min_y = range_y.low.?;
+    for (coords.items) |*coord| {
+        coord.x -= min_x;
+        coord.y -= min_y;
+    }
+    var prev: ?Coord = null;
     for (coords.items) |red_tile| {
-        grid[red_tile.y - min_y].set(red_tile.x - min_x);
-    }
-
-    std.debug.print("wrote red_tiles\n", .{});
-    std.debug.print("{any} x {any}\n", .{ range_x.len(), range_y.len() });
-
-    var active_ranges: [4]Range = .{.{}} ** 4;
-    var last_active_index: u2 = 0;
-    var range_set_at_row: u64 = 0;
-    const cols = range_x.len();
-    for (grid, 0..) |row, j| {
-        if (j % 5000 == 0) {
-            std.debug.print("{d}\n", .{j});
+        grid[red_tile.y].set(red_tile.x);
+        if (prev) |other_red| {
+            connect(grid, other_red, red_tile);
         }
-        for (0..cols) |i| {
-            const b = row.isSet(i);
-            if (b) {
-            } else {
-                var active_range = &active_ranges[last_active_index];
-                if (active_range.low == null) {
-                    active_range.low = i;
-                    range_set_at_row = j;
-                } else if (active_range.high == null) {
-                    active_range.high = i;
-                    range_set_at_row = j;
-                } else {
-                    last_active_index += 1;
-                    std.debug.assert(last_active_index < active_ranges.len);
-                }
-            }
-            switch (b) {
-                '.' => {
-                    for (0..last_active_index + 1) |x| {
-                        if (active_ranges[x].contains(i)) {
-                            grid[j].set(i);
-                            break;
-                        }
-                    }
-                },
-                'X' => {
-                    if (active_range.low == null) {
-                        active_range.low = i;
-                        range_set_at_row = j;
-                    } else if (active_range.high == null) {
-                        active_range.high = i;
-                        range_set_at_row = j;
-                    } else {
-                        if (range_set_at_row == j) {
-                            active_range.high = @max(j, active_range.high.?);
-                        } else {
-                            active_range.low = @min(i, active_range.low.?);
-                        }
-                    }
-                },
-                else => unreachable,
-            }
+        prev = red_tile;
+    }
+    connect(grid, prev.?, coords.items[0]);
+    std.debug.print("closed shape\n", .{});
+
+    for (grid) |*row| {
+        var left = row.findFirstSet().?;
+        var it = row.iterator(.{});
+        _ = it.next();
+        while (it.next()) |right| {
+            row.setRangeValue(.{ .start = left, .end = right }, true);
+            left = right;
         }
 
-        // std.debug.print("{s} |  active: {any}\n", .{ row, active_range });
     }
-    // dumpGrid(grid);
+    std.debug.print("fill shape\n", .{});
 
-    // var bounds = Bounds{ .by_x = .init(adlib.allocator), .by_y = .init(adlib.allocator) };
-    // for (coords.items) |tile| {}
-
-    const max_area: u64 = 0;
-    // for (coords.items) |coord_a| {
-    //     for (coords.items) |coord_b| {
-    //         if (bounds.rect_within(coord_a, coord_b)) {
-    //             max_area = @max(max_area, coord_a.area_rect_with(coord_b));
-    //         }
-    //     }
-    // }
+    std.debug.print("{d}\n", .{ coords.items.len });
+    var max_area: u64 = 0;
+    for (coords.items, 0..) |a, i| {
+        for (coords.items[i + 1 ..]) |b| {
+            if (a.x == b.x or a.y == b.y) continue;
+            if (validRect(grid, a, b)) {
+                max_area = @max(max_area, a.area_rect_with(b));
+            }
+        }
+        std.debug.print("{d}\n", .{ i });
+    }
 
     coords.deinit(adlib.allocator);
+    for (grid) |*row| {
+        row.deinit();
+    }
+    adlib.allocator.free(grid);
     return max_area;
 }
 
@@ -201,7 +285,8 @@ pub fn main() !void {
     const input = try adlib.inputFile("9");
     var reader = input.reader(&buf);
     const res_1 = try partOne(&reader.interface);
-    // const res_2 = try partTwo(input);
-    std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, 0 });
+    try reader.seekTo(0);
+    const res_2 = try partTwo(&reader.interface);
+    std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
     input.close();
 }
