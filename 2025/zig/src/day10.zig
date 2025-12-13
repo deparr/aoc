@@ -1,9 +1,9 @@
 const std = @import("std");
 const adlib = @import("adlib.zig");
 
-const ButtonState = packed struct(u64) {
+const ButtonState = packed struct(u32) {
     state: u10 = 0,
-    presses: u54 = 0,
+    presses: u22 = 0,
 };
 
 fn partOne(input: *std.Io.Reader) !u64 {
