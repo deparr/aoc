@@ -265,8 +265,9 @@ fn partTwo(input: *std.Io.Reader) !u64 {
     for (coords.items, 0..) |a, i| {
         for (coords.items[i + 1 ..]) |b| {
             if (a.x == b.x or a.y == b.y) continue;
-            if (validRect(grid, a, b)) {
-                max_area = @max(max_area, a.area_rect_with(b));
+            const area = a.area_rect_with(b);
+            if (area > max_area and validRect(grid, a, b)) {
+                max_area = area;
             }
         }
         std.debug.print("{d}\n", .{ i });
