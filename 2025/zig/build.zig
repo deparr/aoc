@@ -1,4 +1,5 @@
 const std = @import("std");
+const Io = std.Io;
 
 var optimize: std.builtin.OptimizeMode = undefined;
 var target: std.Build.ResolvedTarget = undefined;
@@ -52,7 +53,7 @@ fn doNewDayStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
     run_fetch.setName("fetch day input");
 
     const day_path = b.fmt("src/day{d:02}.zig", .{day});
-    if (std.fs.cwd().statFile(day_path)) |_| {
+    if (Io.Dir.cwd().statFile(b.graph.io, day_path, .{})) |_| {
         fail(b, create, b.fmt("{s} already exists", .{day_path}));
         return;
     } else |_| {}
@@ -94,19 +95,19 @@ fn fail(b: *std.Build, s: *std.Build.Step, msg: []const u8) void {
     s.dependOn(&fail_step.step);
 }
 
-fn getLatestDay(b: *std.Build) usize {
-    var src = std.fs.cwd().openDir("src", .{ .iterate = true }) catch |err| {
+fn getLatestDay(b: *std.Build)  usize {
+    var src = Io.Dir.cwd().openDir(b.graph.io, "src", .{ .iterate = true }) catch |err| {
         fail(b, b.default_step, b.fmt("{t}\n", .{err}));
         return 0;
     };
-    defer src.close();
+    defer src.close(b.graph.io);
     var iter = src.walk(b.allocator) catch |err| {
         fail(b, b.default_step, b.fmt("{t}\n", .{err}));
         return 0;
     };
     defer iter.deinit();
     var latest_day: usize = 0;
-    while (iter.next() catch |err| {
+    while (iter.next(b.graph.io) catch |err| {
         fail(b, b.default_step, b.fmt("{t}\n", .{err}));
         return 0;
     }) |entry| {
@@ -150,10 +151,11 @@ const TemplateDayStep = struct {
     fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
         const self: *TemplateDayStep = @fieldParentPtr("step", step);
 
-        try std.fs.cwd().copyFile(
+        try Io.Dir.cwd().copyFile(
             self.source,
-            std.fs.cwd(),
+            Io.Dir.cwd(),
             self.dest,
+            self.builder.graph.io,
             .{},
         );
     }

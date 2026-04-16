@@ -36,12 +36,14 @@ fn solve(grid: [][]u8) !struct { u32, u64 } {
 }
 
 pub fn main() !void {
+    var threaded = std.Io.Threaded.init(std.mem.Allocator.failing, .{});
+    const io = threaded.io();
     var buf: [4096]u8 = undefined;
-    const input = try adlib.inputFile("7");
-    var reader = input.reader(&buf);
+    const input = try adlib.inputFile("7", io);
+    var reader = input.reader(io, &buf);
     const grid = try adlib.streamGrid(adlib.allocator, &reader.interface);
     const res_1, const res_2 = try solve(grid);
     std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
-    input.close();
+    input.close(io);
     adlib.freeGrid(adlib.allocator, grid);
 }

@@ -97,13 +97,15 @@ fn partTwoTwo(input: *std.Io.Reader) !u64 {
 }
 
 pub fn main() !void {
+    var threaded = std.Io.Threaded.init(std.mem.Allocator.failing, .{});
+    const io = threaded.io();
     var buf: [4096]u8 = undefined;
-    const input = try adlib.inputFile("6");
-    var reader = input.reader(&buf);
+    const input = try adlib.inputFile("6", io);
+    var reader = input.reader(io, &buf);
     const res_1 = try partOne(&reader.interface);
     try reader.seekTo(0);
     const res_2 = try partTwoTwo(&reader.interface);
     std.debug.print("part one: {d}\npart two {d}\n", .{ res_1, res_2 });
-    input.close();
+    input.close(io);
 }
 

@@ -1,19 +1,20 @@
 const std = @import("std");
+const Io = std.Io;
 
 pub const allocator = std.heap.smp_allocator;
 
 var iobuf: [4096]u8 = undefined;
 
-pub fn collectStdin(gpa: std.mem.Allocator) ![]u8 {
-    var stdin = std.fs.File.stdin().reader(&iobuf);
+pub fn collectStdin(gpa: std.mem.Allocator, io: Io) ![]u8 {
+    var stdin = Io.File.stdin().reader(io, &iobuf);
     var reader = &stdin.interface;
     return reader.allocRemaining(gpa, .unlimited);
 }
 
-pub fn inputFile(comptime day: []const u8) !std.fs.File {
+pub fn inputFile(comptime day: []const u8, io: Io) !Io.File {
     var path_buf: [32]u8 = undefined;
     const path = try std.fmt.bufPrint(&path_buf, "input/{s}", .{day});
-    return std.fs.cwd().openFile(path, .{});
+    return Io.Dir.cwd().openFile(io, path, .{});
 }
 
 pub fn makeGrid(gpa: std.mem.Allocator, input: []const u8) ![][]u8 {
