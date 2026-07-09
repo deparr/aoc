@@ -1,10 +1,8 @@
-#!/usr/bin/env bun
-
-const year = "2024";
+const year = "2025";
 const maxDays = 12;
 
 async function main(): Promise<number> {
-    const day = process.argv[2];
+    const day = Deno.args[0];
     if (!day) {
         console.error("Expected day number argument");
         return 1;
@@ -22,10 +20,9 @@ async function main(): Promise<number> {
         return 0;
     }
 
-    let cookie = process.env["AOC_COOKIE"];
+    let cookie = Deno.env.get("AOC_COOKIE");
     if (!cookie) {
-        const file = Bun.file("aoc-cookie");
-        cookie = await file.text();
+        cookie = Deno.readTextFileSync("aoc-cookie").trim();
     }
     cookie = cookie.trim();
 
@@ -45,16 +42,14 @@ async function main(): Promise<number> {
         return 1;
     }
 
-    const input = await res.body.text();
-
-    await Bun.write(`input/${dayNum}`, input);
+    const input = await res.text();
+    Deno.writeTextFileSync(`input/${dayNum}`, input);
 
     const dayFile = `src/day${day.padStart(2, "0")}.ts`
-    const template = await Bun.file("src/template.ts").bytes();
-    await Bun.write(dayFile, template);
+    Deno.copyFileSync("src/template.ts", dayFile);
 
-    console.log("created " + dayFile);
+    console.log("created " + dayFile, "and its input");
     return 0;
 }
 
-if (import.meta.main) process.exit(await main());
+if (import.meta.main) Deno.exit(await main());

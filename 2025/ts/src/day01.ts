@@ -39,7 +39,7 @@ function partTwo(input: string): number {
 }
 
 export async function main() {
-    const input = (await Bun.stdin.text()).trim();
+    const input = await new Response(Deno.stdin.readable).text();
 
     const res = partOne(input);
     const res2 = partTwo(input);
