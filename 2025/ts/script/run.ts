@@ -21,7 +21,6 @@ async function main(): Promise<void> {
         return;
     }
 
-    console.log("day", selectedDay);
     const dayString = selectedDay.toString().padStart(2, "0");
     const { main } = await import(`../src/day${dayString}.ts`);
     return main();

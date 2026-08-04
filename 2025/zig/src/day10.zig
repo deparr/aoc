@@ -84,7 +84,10 @@ pub fn main() !void {
     var buf: [4096]u8 = undefined;
     var in_file = try adlib.inputFile("10", io);
     var reader = in_file.reader(io, &buf);
+    // const start = std.Io.Timestamp.now(io, .real);
     const res_1 = try partOne(&reader.interface);
+    // const end = std.Io.Timestamp.now(io, .real);
+    // std.debug.print("{d}\n", .{ end.toMilliseconds() - start.toMilliseconds() });
     try reader.seekTo(0);
     const res_2 = try partTwo(&reader.interface);
     std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });

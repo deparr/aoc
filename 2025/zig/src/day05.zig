@@ -102,7 +102,7 @@ pub fn main() !void {
     const res_1 = try partOne(&reader.interface);
     try reader.seekTo(0);
     const res_2 = try partTwo(&reader.interface);
-    std.debug.print("part one: {d}\npart two {d}\n", .{ res_1, res_2 });
+    std.debug.print("part one: {d}\npart two: {d}\n", .{ res_1, res_2 });
     input.close(io);
 }
 
