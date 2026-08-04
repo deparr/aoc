@@ -77,7 +77,7 @@ fn part_one(input: &String) -> u64 {
 }
 
 pub fn main() -> Result<(), std::io::Error> {
-    let input = std::fs::read_to_string("input/10-long")?;
+    let input = std::fs::read_to_string("input/10")?;
     let res_1 = part_one(&input);
     println!("part_one: {}", res_1);
     Ok(())
