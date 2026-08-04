@@ -8,7 +8,7 @@ const ButtonState = packed struct(u32) {
 
 fn partOne(input: *std.Io.Reader) !u64 {
     var total_min_presses: u64 = 0;
-    var processed = try std.ArrayList(u10).initCapacity(adlib.allocator, 400);
+    var processed = std.AutoHashMap(u10, void).init(adlib.allocator);
     var queue = try adlib.Queue(ButtonState).initCapacity(adlib.allocator, 300);
     var linenr: u32 = 0;
     while (try input.takeDelimiter('\n')) |line| {
@@ -42,7 +42,7 @@ fn partOne(input: *std.Io.Reader) !u64 {
         var min_presses: u64 = std.math.maxInt(u64);
         var max_queue_len: usize = 0;
         queue.push(.{});
-        processed.appendAssumeCapacity(0);
+        try processed.put(0, {});
 
         while (!queue.isEmpty()) {
             const item = queue.pop().?;
@@ -53,8 +53,8 @@ fn partOne(input: *std.Io.Reader) !u64 {
             if (item.presses >= min_presses) continue;
             for (buttons) |button| {
                 const new_state = item.state ^ button;
-                if (std.mem.findScalarLast(u10, processed.items, new_state) == null) {
-                    try processed.append(adlib.allocator, new_state);
+                if (!processed.contains(new_state)) {
+                    try processed.put(item.state, {});
                     queue.push(.{ .state = new_state, .presses = item.presses + 1 });
                 }
             }
@@ -69,7 +69,7 @@ fn partOne(input: *std.Io.Reader) !u64 {
     }
 
     queue.deinit();
-    processed.deinit(adlib.allocator);
+    processed.deinit();
     return total_min_presses;
 }
 
