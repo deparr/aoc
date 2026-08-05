@@ -1,6 +1,8 @@
-.zig-cache
-zig-out
+.zig-cache/
+zig-out/
+zig-pkg/
 *.exe
 aoc-cookie
 input/
+target/
 
