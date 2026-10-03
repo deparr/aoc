@@ -5,6 +5,8 @@ var optimize: std.builtin.OptimizeMode = undefined;
 var target: std.Build.ResolvedTarget = undefined;
 var year: []const u8 = undefined;
 
+const max_days = 12;
+
 pub fn build(b: *std.Build) void {
     target = b.standardTargetOptions(.{});
     optimize = b.standardOptimizeOption(.{});
@@ -21,7 +23,6 @@ pub fn build(b: *std.Build) void {
     doNewDayStep(b, new_day_step, next_day);
     doAllStep(b, all_step, selected_day);
 
-
     const exe = createExecutableForDay(b, b.getInstallStep(), selected_day);
     const run_day_exe = b.addRunArtifact(exe);
     run_step.dependOn(&run_day_exe.step);
@@ -34,7 +35,7 @@ pub fn build(b: *std.Build) void {
 }
 
 fn doNewDayStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
-    if (day > 12) {
+    if (day > max_days) {
         std.debug.print("Advent of Code is over, Merry Christmas 🎄!\n", .{});
         return;
     }
@@ -57,9 +58,11 @@ fn doNewDayStep(b: *std.Build, create: *std.Build.Step, day: usize) void {
         fail(b, create, b.fmt("{s} already exists", .{day_path}));
         return;
     } else |_| {}
-    const write_templ = TemplateDayStep.create(b, "src/build/template.zig", day_path);
 
-    create.dependOn(&write_templ.step);
+    const copy_templ = b.addUpdateSourceFiles();
+    copy_templ.addCopyFileToSource(b.path("src/build/template.zig"), day_path);
+
+    create.dependOn(&copy_templ.step);
     create.dependOn(&run_fetch.step);
 }
 
@@ -126,37 +129,3 @@ fn getLatestDay(b: *std.Build)  usize {
     return latest_day;
 }
 
-const TemplateDayStep = struct {
-    step: std.Build.Step,
-    builder: *std.Build,
-    source: []const u8,
-    dest: []const u8,
-
-    pub fn create(b: *std.Build, source: []const u8, dest: []const u8) *TemplateDayStep {
-        const self = b.allocator.create(TemplateDayStep) catch @panic("OOM");
-        self.* = .{
-            .step = std.Build.Step.init(.{
-                .id = .custom,
-                .name = b.fmt("copy {s} to {s}", .{ source, dest }),
-                .owner = b,
-                .makeFn = make,
-            }),
-            .builder = b,
-            .source = b.dupe(source),
-            .dest = b.dupe(dest),
-        };
-        return self;
-    }
-
-    fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
-        const self: *TemplateDayStep = @fieldParentPtr("step", step);
-
-        try Io.Dir.cwd().copyFile(
-            self.source,
-            Io.Dir.cwd(),
-            self.dest,
-            self.builder.graph.io,
-            .{},
-        );
-    }
-};
